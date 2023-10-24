@@ -3,7 +3,7 @@ from werkzeug.utils import secure_filename
 import tensorflow as tf
 tf.get_logger().setLevel('ERROR')
 import mediapipe as mp
-from functions_ml import refactor_video_into_input
+from utils.functions_ml import refactor_video_into_input
 import os
 import numpy as np
 import logging
@@ -13,10 +13,11 @@ import json
 import pandas as pd
 import yaml
 
+CONFIG_DIR = 'config'
 CONFIG_FILE = 'config.yaml'
 ALLOWED_EXT = {'mp4', 'webm'}
 
-with open(CONFIG_FILE, 'r') as yaml_conf:
+with open(os.path.join(CONFIG_DIR, CONFIG_FILE), 'r') as yaml_conf:
     CONFIG = yaml.load(yaml_conf, Loader=yaml.SafeLoader)
 
 LOGGER_SETTINGS = CONFIG.get('LOGGING')
@@ -52,7 +53,7 @@ MODELS = {
 
 logger.debug('SLR models loaded successfully')
 
-with open(FILES.get('CLASSES_MAPPING'), 'r', encoding='utf-8') as json_mapping:
+with open(os.path.join(CONFIG_DIR, FILES.get('CLASSES_MAPPING')), 'r', encoding='utf-8') as json_mapping:
     CLASS_MAPPING = json.load(json_mapping)
 
 app = Flask(__name__)
