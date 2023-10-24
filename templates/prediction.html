@@ -1,0 +1,82 @@
+<!-- prediction.html -->
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Prediction Result</title>
+    <!-- Load D3.js -->
+    <style>
+        /* Add some basic styling */
+        body {
+            font-family: sans-serif;
+            background-color: #eee;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        h2 {
+            text-align: center;
+            color: #333;
+        }
+        video {
+            display: block;
+            margin: 1em auto;
+            width: 70%;
+            height: 540px;
+            border: 2px solid black;
+        }
+
+        #bar-plot {
+            margin:1em auto;
+            width: 500px;
+            height: 540px;
+            border: 2px solid black;
+        }
+
+        .parent { 
+            width: 50%; 
+        } 
+        .child { 
+            float: left; 
+            width: 50%; 
+} 
+
+
+
+    </style>
+    <script src='https://cdn.plot.ly/plotly-latest.min.js'></script>
+    
+</head>
+<body>
+    <h1>Prediction succeeded!</h1>
+
+    <div class="parent"></div>
+
+        <div class="child">
+
+            <video autoplay="autoplay" height="640" width="400" controls="controls" preload="preload">
+                <source src="{{ url_for('get_video', filename=video_filename) }}" type="video/mp4"></source>
+            </video>
+
+            <h2>Model predicted your gesture as <i>{{ prediction }}</i></h2>
+
+        </div>
+
+        <div class="child">
+
+            <div id='bar-plot'>
+                <script>
+                    Plotly.plot('bar-plot', {{ figure|safe }});
+                </script>
+            </div>
+
+            <h2>Check the model's predicted probabilities</h2>
+
+        </div>
+
+    <div>
+
+</body>
+</html>
+

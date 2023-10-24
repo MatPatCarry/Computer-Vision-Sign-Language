@@ -1,0 +1,13 @@
+LOGGING:
+  LOGGER_LEVEL: DEBUG
+  LOGGING_FORMAT: '[%(asctime)s] - %(levelname)s - %(module)s - %(message)s'
+DIRS:
+  MODELS_DIR: models
+  LOADED_VIDEOS: loaded_videos
+  STATIC_DIR: static
+FILES:
+  CLASSES_MAPPING: classes_mapping.json
+ML_MODELS:
+  MAIN_SLR: lstm_5_classes.ckpt
+
+

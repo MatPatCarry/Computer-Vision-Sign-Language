@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Sign Language Detection</title>
+    <style>
+        form {
+            margin: 0 auto;
+            width: 400px;
+            background-color: #fff;
+            padding: 20px;
+            box-shadow: 0px 0px 10px #999;
+            border-radius: 10px;
+        }
+        label, input[type="submit"], button {
+            display: block;
+            margin-bottom: 15px;
+            font-size: 18px;
+            color: #333;
+        }
+        input[type="file"] {
+            padding: 10px;
+            font-size: 16px;
+            width: 100%;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        select {
+            padding: 10px;
+            font-size: 16px;
+            width: 100%;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #f2f2f2;
+        }
+        h1 {
+            font-size: 36px;
+            text-align: center;
+            margin-bottom: 50px;
+        }
+        h3 {
+            font-size: 18px;
+            color: #333;
+        }
+        h4 {
+            font-size: 18px;
+            text-align: center;
+            margin-bottom: 20px;
+            color: rgb(175, 18, 196);
+        }
+
+        p {
+            font-size: 18px;
+            color: #333;
+        }
+
+        button {
+            padding: 10px 10px;
+            background-color: rgb(6, 143, 255);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 18px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .button-group {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .button-group button {
+            padding: 10px 20px; /* Adjust button padding for spacing */
+            background-color: rgb(6, 143, 255);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 18px;
+            cursor: pointer;
+            width: 48%;
+        }
+
+        #preview {
+            display: block;
+            max-width: 100%; /* Adjust the video's maximum width */
+            width: 640px; /* Set a default width for the video element */
+            height: 280px; /* Set a default height for the video element */
+            margin: 0 auto;
+        }
+
+        .centered-text {
+            text-align: center;
+        }
+
+
+    </style>
+</head>
+<body>
+    <h1>Sign Language Recognition</h1>
+    <div class="form-container">
+        
+        <form id="prediction-form" action="/predict" method="post" enctype="multipart/form-data">
+            <label for="model-select">Select a model:</label>
+            <select id="model-select" name="model">
+                <option value="model_keypoints_extraction">Keypoints extraction LSTM model</option>
+                <option value="model_manual_canny">Canny ConvLSTM model</option>
+            </select>
+
+            <br><br><br>
+            <p>Provide video with gesture:</p>
+            
+            <button id="toggleRecording" type="button">Record a video</button>
+
+            <div id="recordingElements" style="display: none;">
+                <video id="preview" controls autoplay></video>
+                <div class="button-group">
+                    <button id="start">Start recording</button>
+                    <button id="stop" disabled>Stop recording</button>
+                </div>
+            </div>
+
+            <p class="centered-text">or</p>
+
+            <input type="file" name="file" id="fileInput">
+            <button type="submit">Predict your gesture!</button>
+        </form>
+    
+    <script>
+    function FileListItems(blob) {
+        const timestamp = new Date().toISOString().replace(/[:.Z-]/g, '_');
+        const fileName = `video_${timestamp}.webm`;
+        return new File([blob], fileName, { type: 'video/webm' });
+    }
+    
+    let mediaRecorder;
+    let recordedBlobs = [];
+
+    document.querySelector('#toggleRecording').addEventListener('click', function () {
+        const recordingElements = document.querySelector('#recordingElements');
+        const isVisible = recordingElements.style.display === 'block';
+
+        if (isVisible) {
+            recordingElements.style.display = 'none';
+        } else {
+            recordingElements.style.display = 'block';
+        }
+    });
+    
+    document.querySelector('#start').addEventListener('click', async () => {
+      event.preventDefault();
+      const stream = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
+      document.querySelector('video').srcObject = stream;
+    
+      if (MediaRecorder.isTypeSupported('video/webm;codecs=vp8')) {
+        mediaRecorder = new MediaRecorder(stream, {mimeType: 'video/webm;codecs=vp8'});
+      } else {
+        mediaRecorder = new MediaRecorder(stream);
+      }
+    
+      mediaRecorder.onstop = (event) => {
+        const blob = new Blob(recordedBlobs, { type: 'video/webm' });
+        const file = FileListItems(blob);
+        const fileInput = document.querySelector('#fileInput');
+        const fileList = new DataTransfer();
+        fileList.items.add(file);
+        fileInput.files = fileList.files;
+        };
+
+      mediaRecorder.ondataavailable = handleDataAvailable;
+      mediaRecorder.start();
+    
+      document.querySelector('#start').disabled = true;
+      document.querySelector('#stop').disabled = false;
+    });
+    
+    document.querySelector('#stop').addEventListener('click', () => {
+      event.preventDefault();
+      mediaRecorder.stop();
+      mediaRecorder.stream.getTracks().forEach(track => track.stop());
+      document.querySelector('#start').disabled = false;
+      document.querySelector('#stop').disabled = true;
+    });
+
+    function handleDataAvailable(event) {
+      if (event.data && event.data.size > 0) {
+        recordedBlobs.push(event.data);
+      }
+    }
+
+    </script>
+    
+</body>
+</html>
