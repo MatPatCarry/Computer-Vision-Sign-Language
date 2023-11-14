@@ -8,60 +8,14 @@ import numpy as np
 from PIL import Image
 from IPython.display import display
 from mediapipe.tasks.python.vision import PoseLandmarkerResult, PoseLandmarker
+from mediapipe.tasks.python import vision
 
 logger = logging.getLogger(__name__)
-
-mp_selfie_segmentation = mp.solutions.selfie_segmentation
-mp_holistic = mp.solutions.holistic # Holistic model
-mp_drawing = mp.solutions.drawing_utils
 
 IMAGE_SIZE = (256, 256)
 SEQUENCE_LENGTH = 25
 BG_COLOR = (255, 255, 255)
-
- # Drawing utilities
-def mediapipe_detection(
-        image: np.array, 
-        model: mp_holistic.Holistic):
-    
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB) # COLOR CONVERSION BGR 2 RGB
-    image.flags.writeable = False   
-
-    results = model.process(image)                 # Make prediction
-    image.flags.writeable = True  
-
-    image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR) # COLOR COVERSION RGB 2 BGR
-    return image, results
-
-def draw_landmarks(image, results):
-
-    # mp_drawing.draw_landmarks(image, results.face_landmarks, mp_holistic.FACE_CONNECTIONS) # Draw face connections
-    mp_drawing.draw_landmarks(image, results.pose_landmarks, mp_holistic.POSE_CONNECTIONS) # Draw pose connections
-    mp_drawing.draw_landmarks(image, results.left_hand_landmarks, mp_holistic.HAND_CONNECTIONS) # Draw left hand connections
-    mp_drawing.draw_landmarks(image, results.right_hand_landmarks, mp_holistic.HAND_CONNECTIONS)
-
-# def draw_styled_landmarks(image, results):
-#     # Draw face connections
-#     mp_drawing.draw_landmarks(image, results.face_landmarks, mp_holistic.FACEMESH_CONTOURS, 
-#                              mp_drawing.DrawingSpec(color=(80,110,10), thickness=1, circle_radius=1), 
-#                              mp_drawing.DrawingSpec(color=(80,256,121), thickness=1, circle_radius=1)
-#                              ) 
-#     # Draw pose connections
-#     mp_drawing.draw_landmarks(image, results.pose_landmarks, mp_holistic.POSE_CONNECTIONS,
-#                              mp_drawing.DrawingSpec(color=(80,22,10), thickness=2, circle_radius=4), 
-#                              mp_drawing.DrawingSpec(color=(80,44,121), thickness=2, circle_radius=2)
-#                              ) 
-#     # Draw left hand connections
-#     mp_drawing.draw_landmarks(image, results.left_hand_landmarks, mp_holistic.HAND_CONNECTIONS, 
-#                              mp_drawing.DrawingSpec(color=(121,22,76), thickness=2, circle_radius=4), 
-#                              mp_drawing.DrawingSpec(color=(121,44,250), thickness=2, circle_radius=2)
-#                              ) 
-#     # Draw right hand connections  
-#     mp_drawing.draw_landmarks(image, results.right_hand_landmarks, mp_holistic.HAND_CONNECTIONS, 
-#                              mp_drawing.DrawingSpec(color=(245,117,66), thickness=2, circle_radius=4), 
-#                              mp_drawing.DrawingSpec(color=(245,66,230), thickness=2, circle_radius=2)
-#                              )
-    
+  
 def extract_keypoints(
         results: PoseLandmarkerResult,
         pose_indexes: tuple = (11, 25),
@@ -69,6 +23,9 @@ def extract_keypoints(
     
     pose_start_idx, pose_end_idx = pose_indexes
     landmark_num_vals = 4 if use_visibility else 3
+
+    if not results:
+        return np.zeros(shape=(pose_end_idx - pose_start_idx, landmark_num_vals))
 
     if not results.pose_landmarks:
         return np.zeros(shape=(pose_end_idx - pose_start_idx, landmark_num_vals))
@@ -102,6 +59,7 @@ def extract_video_frames(
     step = max(round(video_length / sequence_length, 0), 1)
 
     video_frames = []
+    timestamps = []
     frame_nr, counter = 1, 1
     success, frame = capture.read()
 
@@ -109,13 +67,15 @@ def extract_video_frames(
         success, frame = capture.read()
 
         if success and counter % step == 0: 
-            
+
+            timestamp = capture.get(cv2.CAP_PROP_POS_MSEC)
             video_frames.append(frame)
+            timestamps.append(timestamp)
             frame_nr += 1
 
         counter += 1
 
-    return video_frames
+    return video_frames, timestamps
 
 def load_mp_image(
     img_numpy: np.ndarray,
@@ -126,6 +86,7 @@ def load_mp_image(
 
 def adjust_video_frames(
         video_frames: list[np.ndarray],
+        timestamps: list[float],
         sequence_length: int = 25,
         image_size: tuple[int, int] = (256, 256),
         img_channels: int = 3) -> list[np.ndarray]:
@@ -133,13 +94,14 @@ def adjust_video_frames(
     video_frames_length = len(video_frames)
 
     if video_frames_length == sequence_length:
-        return video_frames
+        return video_frames, timestamps
     
     if video_frames_length > sequence_length:
 
         excess = video_frames_length - sequence_length
         from_beginning, from_ending = begin_and_end(excess)
         video_frames = video_frames[from_beginning:-from_ending]
+        timestamps = timestamps[from_beginning:-from_ending]
 
     else:
 
@@ -155,27 +117,35 @@ def adjust_video_frames(
             + video_frames \
             + [black_image] * from_ending
         
-    return video_frames
+        timestamp_diff = timestamps[1] - timestamps[0]
+
+        timestamps = [timestamps[0] - timestamp_diff * i for i in range(1, from_beginning + 1)][::-1] \
+            + timestamps \
+            + [timestamps[-1] + timestamp_diff * i for i in range(1, from_ending + 1)]
+
+    return video_frames, timestamps
 
 def refactor_video_into_input(
         video_path: str,
-        key_points_detector: PoseLandmarker,
         sequence_length: int = 25,
         image_size: tuple = (256, 256),
         pose_indexes: tuple = (11, 25),
-        use_visibility: bool = True) -> np.ndarray:
+        use_visibility: bool = True,
+        video_task: bool = False,
+        detector_options: vision.PoseLandmarkerOptions = None):
 
     capture = cv2.VideoCapture(video_path)
 
-    video_frames = extract_video_frames(
+    video_frames, timestamps = extract_video_frames(
         capture=capture,
         sequence_length=sequence_length
     )
 
     capture.release()
     
-    video_frames = adjust_video_frames(
+    video_frames, timestamps = adjust_video_frames(
         video_frames=video_frames,
+        timestamps=timestamps,
         sequence_length=sequence_length,
         image_size=image_size,
         img_channels=3
@@ -183,22 +153,39 @@ def refactor_video_into_input(
         
     keypoints_for_whole_video = []
 
-    for frame in video_frames:
-    
-        landmarker_detection = key_points_detector.detect(
-            load_mp_image(
-                img_numpy=frame,
-                img_size=image_size
-            )
-        )
+    if timestamps is not None:
+        timestamps = [int(x) for x in timestamps]
 
-        keypoints_for_whole_video.append(
-            extract_keypoints(
-                results=landmarker_detection,
-                pose_indexes=pose_indexes,
-                use_visibility=use_visibility
+    with vision.PoseLandmarker.create_from_options(detector_options) as key_points_detector:
+
+        for i, frame in enumerate(video_frames):
+
+            landmarker_detection = []
+
+            if not np.all(frame == 0):
+
+                landmarker_detection = key_points_detector.detect(
+
+                    load_mp_image(
+                        img_numpy=frame,
+                        img_size=image_size
+                    )
+
+                ) if not video_task else key_points_detector.detect_for_video(
+                    load_mp_image(
+                        img_numpy=frame,
+                        img_size=image_size
+                    ),
+                    timestamps[i]
+                )
+
+            keypoints_for_whole_video.append(
+                extract_keypoints(
+                    results=landmarker_detection,
+                    pose_indexes=pose_indexes,
+                    use_visibility=use_visibility
+                )
             )
-        )
 
     keypoints_for_whole_video = np.array(
         keypoints_for_whole_video, 
@@ -210,6 +197,12 @@ def refactor_video_into_input(
         axis=0
     )
 
+    all_zeros_mask = np.all(keypoints_for_whole_video == 0, axis=(1, 2))
+
+    for i in range(len(keypoint_diff)):
+        if any(all_zeros_mask[i: i + 2]): 
+            keypoint_diff[i, :, :] = 0
+
     if use_visibility:
 
         keypoint_diff[:, :, -1] = np.round(
@@ -218,7 +211,7 @@ def refactor_video_into_input(
 
     logger.info(f"Length: {len(keypoints_for_whole_video)}")
 
-    return keypoint_diff
+    return keypoints_for_whole_video, keypoint_diff
 
 def connect_to_db(
     db: str) -> sqlite3.Connection or None:

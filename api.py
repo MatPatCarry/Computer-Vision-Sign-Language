@@ -22,7 +22,7 @@ CONFIG_FILE = 'config.yaml'
 ALLOWED_EXT = {'mp4', 'webm'}
 VIDEO_TIMESTAMP_FORMAT = "%Y_%m_%d_%H_%M_%S"
 TIME_ZONE = pytz.timezone('Europe/Warsaw')
-SEQ_LENGTH = 25
+SEQ_LENGTH = 15
 POSE_INDEXES = (11, 23)
 
 with open(os.path.join(CONFIG_DIR, CONFIG_FILE), 'r') as yaml_conf:
@@ -59,7 +59,7 @@ detector_options = vision.PoseLandmarkerOptions(
     output_segmentation_masks=False,
     running_mode=running_mode.VIDEO)
 
-key_points_detector = vision.PoseLandmarker.create_from_options(detector_options)
+# key_points_detector = vision.PoseLandmarker.create_from_options(detector_options)
 
 logger.debug('Mediapipe models loaded successfully')
 
@@ -162,7 +162,7 @@ def predict():
 
     try:
 
-        keypoints, refactored = refactor_video_into_input(
+        keypoints = refactor_video_into_input(
             video_path=video_saving_path, 
             sequence_length=SEQ_LENGTH,
             image_size=(256, 256),
@@ -172,8 +172,8 @@ def predict():
             detector_options=detector_options
         )
 
-        logger.debug(f"{refactored = }")
-        predictions = model(tf.expand_dims(refactored.reshape(SEQ_LENGTH - 1, -1), 0))[0].numpy()
+        # logger.debug(f"{refactored = }")
+        predictions = model(tf.expand_dims(keypoints.reshape(SEQ_LENGTH, -1), 0))[0].numpy()
 
     except ValueError:
         return redirect(url_for('error'))
@@ -191,7 +191,7 @@ def predict():
                 query=sql_query,
                 db_name=DB_SETTINGS.get('DB_NAME'),
                 only_select=False,
-                query_params=(video_filename, refactored.tobytes())
+                query_params=(video_filename, keypoints.tobytes())
             )
 
             if isinstance(query_res, str):
@@ -338,13 +338,18 @@ def get_prediction():
 
     try:
 
-        refactored = refactor_video_into_input(
-            video_saving_path, 
-            key_points_detector=key_points_detector
-        ).reshape(SEQ_LENGTH - 1, -1)
+        keypoints = refactor_video_into_input(
+            video_path=video_saving_path, 
+            sequence_length=SEQ_LENGTH,
+            image_size=(256, 256),
+            pose_indexes=POSE_INDEXES,
+            use_visibility=False,
+            video_task=True,
+            detector_options=detector_options
+        ).reshape(SEQ_LENGTH, -1)
 
         # logger.debug(f"{refactored = }")
-        predictions = SLR_MODEL(tf.expand_dims(refactored, 0))[0].numpy()
+        predictions = SLR_MODEL(tf.expand_dims(keypoints, 0))[0].numpy()
 
     except ValueError:
         return jsonify({'message': 'Can not get proper prediction'}), 500

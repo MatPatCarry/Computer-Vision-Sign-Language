@@ -9,27 +9,47 @@ function updateFormData(responseData) {
     };
 
     const activeElement = document.activeElement;
+
     const predictionText = responseMappings.hasOwnProperty(responseData.prediction) 
-        ? responseMappings[responseData.prediction] : null
+        ? responseMappings[responseData.prediction] : null;
 
     if (predictionText) {
 
         let currentIndex = 0;
 
-        if (activeElement.textContent) {
-            activeElement.textContent += " "
+        if (activeElement.value || activeElement.textContent) {
+            
+            if (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA') {
+                activeElement.value += ' ';
+            } else {
+                activeElement.textContent += ' ';
+            }
         }
 
         const intervalId = setInterval(function () {
 
             if (currentIndex < predictionText.length) {
 
-                activeElement.textContent += predictionText[currentIndex];
+                if (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA') {
+                    activeElement.value += predictionText[currentIndex];
+                } else {
+                    activeElement.textContent += predictionText[currentIndex];
+                }
+
                 currentIndex++;
 
             } else {
                 clearInterval(intervalId); // Stop the interval when all characters are filled
             }
+
+            const range = document.createRange();
+            const sel = window.getSelection();
+
+            range.setStart(activeElement.childNodes[0], activeElement.textContent.length);
+            range.collapse(true);
+            
+            sel.removeAllRanges();
+            sel.addRange(range);
 
         }, 10);
     }

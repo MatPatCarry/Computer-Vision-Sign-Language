@@ -12,10 +12,15 @@ from mediapipe.tasks.python import vision
 
 logger = logging.getLogger(__name__)
 
+mp_selfie_segmentation = mp.solutions.selfie_segmentation
+mp_holistic = mp.solutions.holistic # Holistic model
+mp_drawing = mp.solutions.drawing_utils
+
 IMAGE_SIZE = (256, 256)
 SEQUENCE_LENGTH = 25
 BG_COLOR = (255, 255, 255)
-  
+
+
 def extract_keypoints(
         results: PoseLandmarkerResult,
         pose_indexes: tuple = (11, 25),
@@ -56,7 +61,10 @@ def extract_video_frames(
         sequence_length: int = 25) -> list[np.ndarray]:
 
     video_length = int(capture.get(cv2.CAP_PROP_FRAME_COUNT))
-    step = max(round(video_length / sequence_length, 0), 1)
+    # print(f"Video length: {video_length}")
+    step = int(max(round(video_length / sequence_length, 0), 1))
+
+    # print(f"Step: {step}")
 
     video_frames = []
     timestamps = []
@@ -75,6 +83,8 @@ def extract_video_frames(
 
         counter += 1
 
+    # print(f"Frames: {len(video_frames)}, timestamps: {len(timestamps)}")
+
     return video_frames, timestamps
 
 def load_mp_image(
@@ -82,6 +92,8 @@ def load_mp_image(
     img_size: tuple = (256, 256)) -> mp.Image:
 
     img_numpy = cv2.resize(img_numpy, img_size)
+    img_numpy = cv2.cvtColor(img_numpy, cv2.COLOR_BGR2RGB)
+
     return mp.Image(image_format=mp.ImageFormat.SRGB, data=img_numpy)
 
 def adjust_video_frames(
@@ -100,8 +112,9 @@ def adjust_video_frames(
 
         excess = video_frames_length - sequence_length
         from_beginning, from_ending = begin_and_end(excess)
-        video_frames = video_frames[from_beginning:-from_ending]
-        timestamps = timestamps[from_beginning:-from_ending]
+
+        video_frames = video_frames[from_beginning: -from_ending if from_ending else None]
+        timestamps = timestamps[from_beginning: -from_ending if from_ending else None]
 
     else:
 
@@ -164,6 +177,8 @@ def refactor_video_into_input(
 
             if not np.all(frame == 0):
 
+                # display(Image.fromarray(frame))
+
                 landmarker_detection = key_points_detector.detect(
 
                     load_mp_image(
@@ -179,39 +194,82 @@ def refactor_video_into_input(
                     timestamps[i]
                 )
 
-            keypoints_for_whole_video.append(
-                extract_keypoints(
-                    results=landmarker_detection,
-                    pose_indexes=pose_indexes,
-                    use_visibility=use_visibility
+                keypoints_for_whole_video.append(
+                    extract_keypoints(
+                        results=landmarker_detection,
+                        pose_indexes=pose_indexes,
+                        use_visibility=use_visibility
+                    )
                 )
-            )
 
     keypoints_for_whole_video = np.array(
         keypoints_for_whole_video, 
         dtype=np.float16
     )
 
-    keypoint_diff = np.diff(
-        a=keypoints_for_whole_video,
-        axis=0
-    )
+    steps, n_keypoints, n_cords = keypoints_for_whole_video.shape
 
-    all_zeros_mask = np.all(keypoints_for_whole_video == 0, axis=(1, 2))
+    if steps != sequence_length:
 
-    for i in range(len(keypoint_diff)):
-        if any(all_zeros_mask[i: i + 2]): 
-            keypoint_diff[i, :, :] = 0
+        print(f"Steps: {steps} - applying padding")
 
-    if use_visibility:
+        shortage = sequence_length - steps
+        from_beginning, from_ending = begin_and_end(shortage)
 
-        keypoint_diff[:, :, -1] = np.round(
-            keypoints_for_whole_video[1:, :, -1], 3
-        )
+        keypoints_for_whole_video = np.concatenate([
+            np.tile(keypoints_for_whole_video[0], (from_beginning, 1)) \
+                .reshape(from_beginning, -1, n_cords),
+            keypoints_for_whole_video,
+        ])
+
+        if from_ending:
+            keypoints_for_whole_video = np.concatenate([
+                keypoints_for_whole_video,
+                np.tile(keypoints_for_whole_video[-1], (from_ending, 1)) \
+                    .reshape(from_ending, -1, n_cords)
+            ])
+
+
+    assert keypoints_for_whole_video.shape[0] == sequence_length
+
+    max_x, max_y, max_z = np.max(keypoints_for_whole_video, axis=(0, 1))
+    min_x, min_y, min_z = np.min(keypoints_for_whole_video, axis=(0, 1))
+
+    max_x = 1 if max_x < 1 else max_x
+    max_y = 1 if max_y < 1 else max_y
+
+    min_x = 0 if min_x > 0 else min_x
+    min_y = 0 if min_y > 0 else min_y
+
+    max_z = max(max_z, abs(min_z))
+    max_z = 1 if max_z < 1 else max_z
+
+    keypoints_for_whole_video[:, :, 0] = (keypoints_for_whole_video[:, :, 0] - min_x) / (max_x - min_x)
+    keypoints_for_whole_video[:, :, 1] = (keypoints_for_whole_video[:, :, 1] - min_y) / (max_y - min_y)
+
+    keypoints_for_whole_video[:, :, 2] = \
+        (keypoints_for_whole_video[:, :, 2] + max_z) / (max_z * 2)
+
+    # keypoint_diff = np.diff(
+    #     a=keypoints_for_whole_video,
+    #     axis=0
+    # )
+
+    # all_zeros_mask = np.all(keypoints_for_whole_video == 0, axis=(1, 2))
+
+    # for i in range(len(keypoint_diff)):
+    #     if any(all_zeros_mask[i: i + 2]): 
+    #         keypoint_diff[i, :, :] = 0
+
+    # if use_visibility:
+
+    #     keypoint_diff[:, :, -1] = np.round(
+    #         keypoints_for_whole_video[1:, :, -1], 3
+    #     )
 
     logger.info(f"Length: {len(keypoints_for_whole_video)}")
 
-    return keypoints_for_whole_video, keypoint_diff
+    return keypoints_for_whole_video
 
 def connect_to_db(
     db: str) -> sqlite3.Connection or None:

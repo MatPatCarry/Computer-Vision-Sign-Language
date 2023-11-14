@@ -9,7 +9,7 @@ DIRS:
 FILES:
   CLASSES_MAPPING: classes_mapping.json
 ML_MODELS:
-  MAIN_SLR: lstm_with_aug_video.ckpt
+  MAIN_SLR: LSTM_ROTATION_AUG_98.ckpt
   KP_DETECTOR: pose_landmarker.task
 DB:
   DB_NAME: slr.db
