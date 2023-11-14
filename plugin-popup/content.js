@@ -1,0 +1,83 @@
+function updateFormData(responseData) {
+
+    const responseMappings = {
+        "hello": "Hi, I am writing to you",
+        "love": "I love your message",
+        "please": "Please contact me ASAP",
+        "what": "What are you doing?",
+        "thank you": "Thank you for your help"
+    };
+
+    const activeElement = document.activeElement;
+    const predictionText = responseMappings.hasOwnProperty(responseData.prediction) 
+        ? responseMappings[responseData.prediction] : null
+
+    if (predictionText) {
+
+        let currentIndex = 0;
+
+        if (activeElement.textContent) {
+            activeElement.textContent += " "
+        }
+
+        const intervalId = setInterval(function () {
+
+            if (currentIndex < predictionText.length) {
+
+                activeElement.textContent += predictionText[currentIndex];
+                currentIndex++;
+
+            } else {
+                clearInterval(intervalId); // Stop the interval when all characters are filled
+            }
+
+        }, 10);
+    }
+}
+
+function checkIfActive() {
+    return document.activeElement ? document.activeElement : null
+}
+
+function checkIfForm(activeElement) {
+    return activeElement.tagName === 'INPUT' 
+        || activeElement.tagName === 'TEXTAREA'
+        || activeElement.classList.contains('LW-avf') ? true : false
+}
+
+function checkInputConditions() {
+
+    activeElement = checkIfActive();
+    
+    if (!activeElement) {
+        return false;
+    };
+
+    return checkIfForm(activeElement) ? true : false;
+
+};
+
+chrome.runtime.onMessage.addListener(
+
+    function(request, sender, sendResponse) {
+
+        if (request.prediction) {
+
+            console.log(`received ${request.prediction}`);
+            console.log(`received ${JSON.stringify(request.prediction)}`)
+
+            updateFormData(request.prediction)
+            sendResponse({farewell: "goodbye"});
+
+        }
+
+        else if (request.checkCond) {
+
+            if (checkInputConditions()) {
+                sendResponse({checkCond: "ok"})
+            } else {
+                sendResponse({checkCond: "not"})
+            }
+        }
+    }
+);

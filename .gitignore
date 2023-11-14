@@ -3,3 +3,5 @@ sign_language_videos
 chosen_keypoints
 our_videos_CV
 *.npy
+*.mp4
+*.webm

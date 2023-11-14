@@ -102,6 +102,27 @@
             text-align: center;
         }
 
+        .radio-group {
+            display: flex;
+            flex-wrap: nowrap; /* Prevent wrapping onto multiple lines */
+            justify-content: center;
+        }
+        .radio-group label {
+            margin-right: 20px;
+        }
+        .radio-group input[type="radio"] {
+            margin-right: 5px;
+        }
+        .radio-group button {
+            background-color: rgb(6, 143, 255);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 18px;
+            cursor: pointer;
+            width: auto; /* Auto width */
+            margin-top: 10px;
+        }
 
     </style>
 </head>
@@ -116,7 +137,17 @@
                 <option value="model_manual_canny">Canny ConvLSTM model</option>
             </select>
 
-            <br><br><br>
+            <br><br>
+            <p>Chose whether to save video</p>
+            <div class="radio-group">
+                <label>
+                    <input type="radio" id="save-video-yes" name="save_video" value='1' checked>yes
+                </label>
+                <label>
+                    <input type="radio" id="save-video-no" name="save_video" value='0'>no
+                </label>
+            </div>
+
             <p>Provide video with gesture:</p>
             
             <button id="toggleRecording" type="button">Record a video</button>
@@ -137,8 +168,7 @@
     
     <script>
     function FileListItems(blob) {
-        const timestamp = new Date().toISOString().replace(/[:.Z-]/g, '_');
-        const fileName = `video_${timestamp}.webm`;
+        const fileName = `video.webm`;
         return new File([blob], fileName, { type: 'video/webm' });
     }
     
