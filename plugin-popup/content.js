@@ -1,12 +1,12 @@
 function updateFormData(responseData) {
 
     const responseMappings = {
-        "hello": "Hi, I am writing to you",
-        "love": "I love your message",
-        "please": "Please contact me ASAP",
-        "what": "What are you doing?",
-        "thank you": "Thank you for your help"
-    };
+        "hello": "Hi, I am writing to you, because I got your message.",
+        "love": "Much love Piotrek",
+        "please": "Please contact me ASAP.",
+        "what": "What did you mean? I did not understand.",
+        "thank you": "Thank you in advance for your fast reply.",
+    }; 
 
     const activeElement = document.activeElement;
 

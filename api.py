@@ -279,7 +279,7 @@ def submit_prediction():
 
         return jsonify({'message': message}), 500
 
-    return jsonify({'message': 'Verified label saved.'}), 200
+    return redirect(url_for('home', message='Prediction submitted successfully'))
 
 def return_resp(msg: str):
 

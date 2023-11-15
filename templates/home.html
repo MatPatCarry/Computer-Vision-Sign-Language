@@ -128,6 +128,9 @@
 </head>
 <body>
     <h1>Sign Language Recognition</h1>
+    {% if message %}
+        <h4>{{ message }}</h4>
+    {% endif %}
     <div class="form-container">
         
         <form id="prediction-form" action="/predict" method="post" enctype="multipart/form-data">
