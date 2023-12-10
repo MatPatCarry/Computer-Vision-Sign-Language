@@ -1,2 +1,2 @@
-# Computer Vision Sign Language
-This repository contains the files of a sign language gesture recognition application that I designed as part of my engineering thesis.
+# Aplikacja webowa do klasyfikacji gestów języka migowego
+To repozytorium zawiera pliki aplikacji do rozpoznawania gestów języka migowego, którą zaprojektowałem w ramach pracy inżynierskiej.
