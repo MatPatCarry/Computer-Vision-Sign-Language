@@ -18,13 +18,22 @@
       h1 {
         color: #ff6666;
       }
+      .go-home-button {
+        background-color: #ff6666;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+      }
     </style>
   </head>
   <body>
     <div class="message">
-      <h1>Getting frames from video Error</h1>
-      <p>Unfortunately, the uploaded video is invalid and frames can not be extracted.</p>
-      <p>Please try again with a different file.</p>
+      <h1>Processing Error</h1>
+      <p>Unfortunately, application has encountered an error when trying to process video.</p>
+      <p>Please try again.</p>
+      <button class="go-home-button" onclick="window.location.href='/home'">Go to Homepage</button>
     </div>
   </body>
 </html>

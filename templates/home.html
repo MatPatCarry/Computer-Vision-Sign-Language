@@ -80,7 +80,7 @@
         }
 
         .button-group button {
-            padding: 10px 20px; /* Adjust button padding for spacing */
+            padding: 10px 20px;
             background-color: rgb(6, 143, 255);
             color: white;
             border: none;
@@ -92,9 +92,9 @@
 
         #preview {
             display: block;
-            max-width: 100%; /* Adjust the video's maximum width */
-            width: 640px; /* Set a default width for the video element */
-            height: 280px; /* Set a default height for the video element */
+            max-width: 100%;
+            width: 640px;
+            height: 280px;
             margin: 0 auto;
         }
 
@@ -104,7 +104,7 @@
 
         .radio-group {
             display: flex;
-            flex-wrap: nowrap; /* Prevent wrapping onto multiple lines */
+            flex-wrap: nowrap;
             justify-content: center;
         }
         .radio-group label {
@@ -120,10 +120,9 @@
             border-radius: 5px;
             font-size: 18px;
             cursor: pointer;
-            width: auto; /* Auto width */
+            width: auto;
             margin-top: 10px;
         }
-
     </style>
 </head>
 <body>
@@ -132,14 +131,13 @@
         <h4>{{ message }}</h4>
     {% endif %}
     <div class="form-container">
-        
         <form id="prediction-form" action="/predict" method="post" enctype="multipart/form-data">
             <label for="model-select">Select a model:</label>
             <select id="model-select" name="model">
-                <option value="model_keypoints_extraction">Keypoints extraction LSTM model</option>
-                <option value="model_manual_canny">Canny ConvLSTM model</option>
+                {% for model in models %}
+                    <option value="{{ model }}">{{ ' '.join(model.split('_')) }}</option>
+                {% endfor %}
             </select>
-
             <br><br>
             <p>Chose whether to save video</p>
             <div class="radio-group">

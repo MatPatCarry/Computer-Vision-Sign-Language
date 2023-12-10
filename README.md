@@ -2,7 +2,7 @@
 0. Gather videos of corresponding sign language phrases
 1. Label them
 2. Use OpenCV2 to extract frames from the videos
-3. Reshape images to 160 x 160
+3. Reshape images to 256 x 256
 4. Extract keypoints from body using MediaPipe
 5. LSTM to build sequences
 6. Classification 

@@ -2,9 +2,7 @@
 <html>
 <head>
     <title>Prediction Result</title>
-    <!-- Load D3.js -->
     <style>
-        /* Add some basic styling */
         body {
             font-family: sans-serif;
             background-color: #eee;
@@ -40,13 +38,13 @@
             border-radius: 10px;
             margin-top: 20px;
             text-align: center;
-            width: 100%; /* Set width to 100% to keep radios in a single line */
-            margin: 0 auto; /* Center the container horizontally */
-            max-width: 400px; /* Set a maximum width */
+            width: 100%;
+            margin: 0 auto;
+            max-width: 400px;
         }
         .radio-group {
             display: flex;
-            flex-wrap: nowrap; /* Prevent wrapping onto multiple lines */
+            flex-wrap: nowrap;
             justify-content: center;
         }
         .radio-group label {
@@ -62,7 +60,7 @@
             border-radius: 5px;
             font-size: 18px;
             cursor: pointer;
-            width: auto; /* Auto width */
+            width: auto;
             margin-top: 10px;
         }
         button {
@@ -103,7 +101,7 @@
     </div>
 
     <br>
-    <h3 style="text-align:center;">Verify model prediction</h3>
+    <h3 style="text-align:center;">Verify model's prediction</h3>
 
     <div class="radio-container">
       <form action="/submit_prediction" method="post">
@@ -118,8 +116,9 @@
           <br>
           <input type="hidden" name="video_filename" value="{{ video_filename }}">
           <button type="submit">Submit your answer!</button>
-      </form>
+        </form>
+      <button onclick="window.location.href='/home'">Go to Homepage</button>
     </div>
-
+    <br>
 </body>
 </html>

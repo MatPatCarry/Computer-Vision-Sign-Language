@@ -4,12 +4,13 @@ LOGGING:
 DIRS:
   MODELS_DIR: models
   KP_DETECTORS_DIR: key_points_detectors
+  CLASSIFIERS_DIR: classifiers
   LOADED_VIDEOS: loaded_videos
   STATIC_DIR: static
 FILES:
   CLASSES_MAPPING: classes_mapping.json
 ML_MODELS:
-  MAIN_SLR: LSTM_ROTATION_AUG_98.ckpt
+  MAIN_SLR: LSTM_AUG.ckpt
   KP_DETECTOR: pose_landmarker.task
 DB:
   DB_NAME: slr.db
